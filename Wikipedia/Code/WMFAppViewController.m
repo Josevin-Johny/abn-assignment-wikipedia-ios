@@ -1272,11 +1272,23 @@ NSString *const WMFLanguageVariantAlertsLibraryVersion = @"WMFLanguageVariantAle
             [self dismissPresentedViewControllers];
             [self setSelectedIndex:WMFAppTabTypePlaces];
             [self.currentTabNavigationController popToRootViewControllerAnimated:animated];
-            NSURL *articleURL = activity.wmf_linkURL;
-            if (articleURL) {
-                // For "View on a map" action to succeed, view mode has to be set to map.
-                [[self placesViewController] updateViewModeToMap];
-                [[self placesViewController] showArticleURL:articleURL];
+            
+            
+            NSString *latString = activity.userInfo[@"WMFPlacesLatitude"];
+            NSString *lonString = activity.userInfo[@"WMFPlacesLongitude"];
+            
+            if (latString && lonString) {
+                double latitude = [latString doubleValue];
+                double longitude = [lonString doubleValue];
+                [[self placesViewController] showLocationWithLatitude:latitude longitude:longitude];
+            } else {
+                // Existing handling for article URLs
+                NSURL *articleURL = activity.wmf_linkURL;
+                if (articleURL) {
+                    // For "View on a map" action to succeed, view mode has to be set to map.
+                    [[self placesViewController] updateViewModeToMap];
+                    [[self placesViewController] showArticleURL:articleURL];
+                }
             }
         } break;
         case WMFUserActivityTypeContent: {
