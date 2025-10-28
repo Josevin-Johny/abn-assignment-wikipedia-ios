@@ -62,15 +62,31 @@ __attribute__((annotate("returns_localized_nsstring"))) static inline NSString *
 + (instancetype)wmf_placesActivityWithURL:(NSURL *)activityURL {
     NSURLComponents *components = [NSURLComponents componentsWithURL:activityURL resolvingAgainstBaseURL:NO];
     NSURL *articleURL = nil;
+    NSString *latitude = nil;
+    NSString *longitude = nil;
+    
     for (NSURLQueryItem *item in components.queryItems) {
         if ([item.name isEqualToString:@"WMFArticleURL"]) {
             NSString *articleURLString = item.value;
             articleURL = [NSURL URLWithString:articleURLString];
-            break;
+        } else if ([item.name isEqualToString:@"lat"]) {
+            latitude = item.value;
+        } else if ([item.name isEqualToString:@"lon"]) {
+            longitude = item.value;
         }
     }
+    
     NSUserActivity *activity = [self wmf_pageActivityWithName:@"Places"];
     activity.webpageURL = articleURL;
+    
+    // Store coordinates in userInfo if both are present
+    if (latitude && longitude) {
+        NSMutableDictionary *userInfo = [activity.userInfo mutableCopy] ?: [NSMutableDictionary new];
+        userInfo[@"WMFPlacesLatitude"] = latitude;
+        userInfo[@"WMFPlacesLongitude"] = longitude;
+        activity.userInfo = userInfo;
+    }
+    
     return activity;
 }
 
@@ -115,8 +131,25 @@ __attribute__((annotate("returns_localized_nsstring"))) static inline NSString *
 }
 
 + (nullable instancetype)wmf_activityForWikipediaScheme:(NSURL *)url {
-    if (![url.scheme isEqualToString:@"wikipedia"] && ![url.scheme isEqualToString:@"wikipedia-official"]) {
+    NSLog(@"Debug: wmf_activityForWikipediaScheme called with URL: %@", url);
+    NSLog(@"Debug: URL scheme: %@", url.scheme);
+    NSLog(@"Debug: URL host: %@", url.host);
+    if (![url.scheme isEqualToString:@"abnamro-test"] && ![url.scheme isEqualToString:@"wikipedia"] && ![url.scheme isEqualToString:@"wikipedia-official"]) {
         return nil;
+    }
+    
+    if ([url.scheme isEqualToString:@"abnamro-test"]) {
+           NSLog(@"Debug: Custom scheme detected!");
+           if ([url.host isEqualToString:@"places"]) {
+               NSLog(@"Debug: Places host detected, creating activity");
+               NSUserActivity *activity = [self wmf_placesActivityWithURL:url];
+               NSLog(@"Debug: Activity created: %@", activity);
+               NSLog(@"Debug: Activity userInfo: %@", activity.userInfo);
+               return activity;
+           } else {
+               NSLog(@"Debug: Host is not 'places': %@", url.host);
+               return nil;
+           }
     }
 
     if ([url.host isEqualToString:@"content"]) {

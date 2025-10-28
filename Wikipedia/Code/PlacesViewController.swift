@@ -2552,6 +2552,32 @@ extension PlacesViewController {
     }
 }
 
+extension PlacesViewController {
+    @objc public func showLocation(latitude: Double, longitude: Double) {
+        
+        guard view != nil else { // force view instantiation
+            return
+        }
+        let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let region = [coordinate].wmf_boundingRegion(with: 10000) // 10km radius
+        
+        // Perform search in this region
+        currentSearch = PlaceSearch(
+            filter: .top,
+            type: .location,
+            origin: .user,
+            sortStyle: .links,
+            string: nil,
+            region: region,
+            localizedDescription: WMFLocalizedString("places-custom-location", value: "Custom location", comment: "Title for custom location search"),
+            searchResult: nil
+        )
+        
+        // Update map to show this location
+        mapRegion = region
+    }
+}
+
 // MARK: -
 
 class PlaceSearchEmptySearchOverlayView: UIView {
